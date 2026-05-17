@@ -1,3 +1,7 @@
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 AUTH_USER_MODEL = 'users.User'
 
 SECRET_KEY = '5tujRLz5emHic6j3Hd2vwFJ1l06LbRvpg2D9AUAAYVP'
