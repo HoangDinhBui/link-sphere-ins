@@ -31,4 +31,5 @@ urlpatterns = [
     path('api/v1/posts/', include('apps.comments.urls')),
     path('api/v1/feed/', include('apps.feed.urls')),
     path('api/v1/notifications/', include('apps.notifications.urls')),
+    path('api/v1/search/', include('apps.search.urls')),
 ]
