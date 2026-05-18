@@ -39,7 +39,11 @@ jobs:
 
       - name: Run tests
         env:
-          DJANGO_SETTINGS_MODULE: config.settings.development
-          DATABASE_URL: mysql://root:root@127.0.0.1:3306/linksphere_test
+          DJANGO_SETTINGS_MODULE: config.settings.ci
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: linksphere_test
+          DB_USER: root
+          DB_PASSWORD: root
         run: |
           pytest --cov=apps --cov-report=term-missing
