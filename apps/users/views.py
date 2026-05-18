@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .models import User, Follow
 from .serializers import RegisterSerializer, UserSerializer
+from apps.notifications.utils import create_notification
 
 # Create your views here.
 @api_view(['POST'])
@@ -40,10 +41,10 @@ def follow(request):
         return Response({'error': 'You are already following this user'}, status=status.HTTP_400_BAD_REQUEST)
 
     create_notification(
-        recipient=post.author,
+        recipient=target_user,
         sender=request.user,
-        notif_type='like',
-        message=f'{request.user.username} liked your post'
+        notif_type='follow',
+        message=f'{request.user.username} started following you'
     )
 
     return Response({'message': f'You are now following {target_user.username}'}, status=status.HTTP_200_OK)
