@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Post, Like
 from .serializers import PostSerializer
+from apps.notifications.utils import create_notification
+from apps.users.models import Follow
+
 
 # Create your views here.
 @api_view(['GET', 'POST'])
@@ -17,7 +20,17 @@ def posts(request):
 
     serializer = PostSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        serializer.save(author=request.user)
+        post = serializer.save(author=request.user)
+        follower_ids = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
+        from apps.users.models import User as AppUser
+        for follower in AppUser.objects.filter(id__in=follower_ids):
+            create_notification(
+                recipient=follower,
+                sender=request.user,
+                notif_type='new_post',
+                message=f'{request.user.username} has posted a new update'
+            )
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,4 +46,12 @@ def like_post(request, post_id):
     if not created:
         like.delete()
         return Response({'message': 'Post unliked'}, status=status.HTTP_200_OK)
+
+    create_notification(
+        recipient=post.author,
+        sender=request.user,
+        notif_type='like',
+        message=f'{request.user.username} liked your post'
+    )
+
     return Response({'message': 'Post liked'}, status=status.HTTP_201_CREATED)

@@ -1,4 +1,6 @@
 from .base import *
+from datetime import timedelta
+import os
 
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
@@ -22,3 +24,12 @@ CACHES = {
 }
 
 CELERY_BROKER_URL = 'redis://127.0.0.1:6379/1'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
+    },
+}

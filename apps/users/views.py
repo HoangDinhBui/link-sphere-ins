@@ -38,6 +38,14 @@ def follow(request):
 
     if not created:
         return Response({'error': 'You are already following this user'}, status=status.HTTP_400_BAD_REQUEST)
+
+    create_notification(
+        recipient=post.author,
+        sender=request.user,
+        notif_type='like',
+        message=f'{request.user.username} liked your post'
+    )
+
     return Response({'message': f'You are now following {target_user.username}'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])

@@ -3,5 +3,5 @@ from . import views
 
 urlpatterns = [
     path('', views.posts),
-    path('<int:pk>/like/', views.like_post),
+    path('<int:post_id>/like/', views.like_post),
 ]

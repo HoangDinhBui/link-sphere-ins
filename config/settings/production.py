@@ -1,4 +1,5 @@
 from .base import *
+from datetime import timedelta
 import dj_database_url
 import os
 
@@ -20,3 +21,12 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Security
 SECRET_KEY = os.environ.get('SECRET_KEY')
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': 'hosts': [('127.0.0.1', 6379)],,
+        },
+    },
+}
