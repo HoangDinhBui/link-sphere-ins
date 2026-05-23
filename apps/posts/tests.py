@@ -45,7 +45,7 @@ class TestPosts:
             'content': 'Hello world!'
         }, format='json')
         assert res.status_code == 201
-        assert res.data['content'] == 'Hello world!'
+        assert res.data['data']['content'] == 'Hello world!'
 
     def test_create_post_unauthenticated(self, client):
         res = client.post('/api/v1/posts/', {
@@ -56,7 +56,7 @@ class TestPosts:
     def test_list_posts(self, auth_client, post):
         res = auth_client.get('/api/v1/posts/')
         assert res.status_code == 200
-        assert len(res.data) >= 1
+        assert len(res.data['data']) >= 1
 
     def test_like_post(self, auth_client, post):
         res = auth_client.post(f'/api/v1/posts/{post.id}/like/')
@@ -81,7 +81,7 @@ class TestComments:
             'content': 'Nice post!'
         }, format='json')
         assert res.status_code == 201
-        assert res.data['content'] == 'Nice post!'
+        assert res.data['data']['content'] == 'Nice post!'
 
     def test_list_comments(self, auth_client, post):
         res = auth_client.get(f'/api/v1/posts/{post.id}/comments/')

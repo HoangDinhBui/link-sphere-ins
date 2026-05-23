@@ -20,9 +20,8 @@ def feed(request):
         #     'message': 'Follow someone to see their posts here',
         #     'results': []
         # })
-        return APIResponse.error(
+        return APIResponse.success(
             message='Follow someone to see their posts here',
-            error_code='NO_FOLLOWING',
             data={'results': []}
         )
 

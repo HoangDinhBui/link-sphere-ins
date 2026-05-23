@@ -36,10 +36,10 @@ class TestFeed:
         Post.objects.create(author=user2, content='Post from user2')
         res = auth_client.get('/api/v1/feed/')
         assert res.status_code == 200
-        assert res.data['count'] == 1
+        assert res.data['data']['count'] == 1
 
     def test_explore(self, auth_client, user2):
         Post.objects.create(author=user2, content='Explore post')
         res = auth_client.get('/api/v1/feed/explore/')
         assert res.status_code == 200
-        assert res.data['count'] >= 1
+        assert res.data['data']['count'] >= 1

@@ -43,7 +43,7 @@ class TestRegister:
             'password': '123456'
         }, format='json')
         assert res.status_code == 201
-        assert res.data['username'] == 'newuser'
+        assert res.data['data']['username'] == 'newuser'
 
     def test_register_duplicate_username(self, client, user):
         res = client.post('/api/v1/users/register/', {
@@ -84,7 +84,7 @@ class TestAuth:
     def test_profile_authenticated(self, auth_client):
         res = auth_client.get('/api/v1/users/profile/')
         assert res.status_code == 200
-        assert res.data['username'] == 'testuser'
+        assert res.data['data']['username'] == 'testuser'
 
 @pytest.mark.django_db
 class TestFollow:
