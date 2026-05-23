@@ -28,3 +28,7 @@ CHANNEL_LAYERS = {
 }
 
 import os
+
+# Testing Celery locally without a broker
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
