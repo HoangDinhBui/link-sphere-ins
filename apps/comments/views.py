@@ -7,6 +7,7 @@ from .models import Comment
 from .serializers import CommentSerializer
 from apps.posts.models import Post
 from apps.notifications.utils import create_notification
+from utils.response import APIResponse
 
 # Create your views here.
 @api_view(['GET', 'POST'])
@@ -15,23 +16,33 @@ def comments(request, post_id):
     try:
         post = Post.objects.get(id = post_id)
     except:
-        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+        # return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+        return APIResponse.error(
+            message='Post not found',
+            error_code='POST_NOT_FOUND',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
 
     if request.method == 'GET':
         all_comments = Comment.objects.filter(post=post).select_related('author')
         serializer = CommentSerializer(all_comments, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # return Response(serializer.data, status=status.HTTP_200_OK)
+        return APIResponse.success(data=serializer.data)
 
     serializer = CommentSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(author=request.user, post=post)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(author=request.user, post=post)
 
-        create_notification(
-            recipient=post.author,
-            sender=request.user,
-            notif_type='comment',
-            message=f'{request.user.username} commented on your post'
-        )
+    create_notification(
+        recipient=post.author,
+        sender=request.user,
+        notif_type='comment',
+        message=f'{request.user.username} commented on your post'
+    )
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return APIResponse.success(
+        message='Comment created successfully',
+        data=serializer.data,
+        status_code=status.HTTP_201_CREATED
+    )

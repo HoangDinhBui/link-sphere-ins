@@ -7,7 +7,7 @@ from .models import Post, Like
 from .serializers import PostSerializer
 from apps.notifications.utils import create_notification
 from apps.users.models import Follow
-
+from utils.response import APIResponse
 
 # Create your views here.
 @api_view(['GET', 'POST'])
@@ -16,7 +16,8 @@ def posts(request):
     if request.method == 'GET':
         all_post = Post.objects.select_related('author').prefetch_related('likes', 'comments').all()
         serializer = PostSerializer(all_post, many=True, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # return Response(serializer.data, status=status.HTTP_200_OK)
+        return APIResponse.success(data=serializer.data)
 
     serializer = PostSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
@@ -31,8 +32,19 @@ def posts(request):
                 message=f'{request.user.username} has posted a new update'
             )
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return APIResponse.success(
+            message='Post created successfully',
+            data=serializer.data,
+            status_code=status.HTTP_201_CREATED
+        )
+    # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return APIResponse.error(
+        message='Failed to create post',
+        error_code='POST_CREATION_FAILED',
+        data=serializer.errors,
+        status_code=status.HTTP_400_BAD_REQUEST
+    )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -40,12 +52,21 @@ def like_post(request, post_id):
     try:
         post = Post.objects.get(id=post_id)
     except Post.DoesNotExist:
-        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+        # return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+        return APIResponse.error(
+            message='Post not found',
+            error_code='POST_NOT_FOUND',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
 
     like, created = Like.objects.get_or_create(user=request.user, post=post)
     if not created:
         like.delete()
-        return Response({'message': 'Post unliked'}, status=status.HTTP_200_OK)
+        # return Response({'message': 'Post unliked'}, status=status.HTTP_200_OK)
+        return APIResponse.success(
+            message='Post unliked',
+            status_code=status.HTTP_200_OK
+        )
 
     create_notification(
         recipient=post.author,
@@ -54,4 +75,8 @@ def like_post(request, post_id):
         message=f'{request.user.username} liked your post'
     )
 
-    return Response({'message': 'Post liked'}, status=status.HTTP_201_CREATED)
+    # return Response({'message': 'Post liked'}, status=status.HTTP_201_CREATED)
+    return APIResponse.success(
+        message='Post liked',
+        status_code=status.HTTP_201_CREATED
+    )

@@ -86,6 +86,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'utils.response.CustomPagination',
+    'PAGE_SIZE': 10,
+    'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
 }
 
 
