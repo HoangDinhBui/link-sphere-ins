@@ -30,7 +30,7 @@ def auth_client(client, user):
         'username': 'testuser',
         'password': '123456'
     }, format='json')
-    token = response.data['access']
+    token = response.data['data']['access']
     client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
     return client
 
@@ -67,8 +67,8 @@ class TestAuth:
             'password': '123456'
         }, format='json')
         assert res.status_code == 200
-        assert 'access' in res.data
-        assert 'refresh' in res.data
+        assert 'access' in res.data['data']
+        assert 'refresh' in res.data['data']
 
     def test_login_wrong_password(self, client, user):
         res = client.post('/api/v1/auth/login/', {

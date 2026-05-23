@@ -21,7 +21,7 @@ def auth_client(client, user):
     res = client.post('/api/v1/auth/login/', {
         'username': 'user1', 'password': '123456'
     }, format='json')
-    client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["access"]}')
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["data"]["access"]}')
     return client
 
 

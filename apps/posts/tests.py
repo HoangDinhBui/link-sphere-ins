@@ -30,7 +30,7 @@ def auth_client(client, user):
         'username': 'testuser',
         'password': '123456'
     }, format='json')
-    client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["access"]}')
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["data"]["access"]}')
     return client
 
 @pytest.fixture
