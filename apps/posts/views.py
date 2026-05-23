@@ -7,10 +7,17 @@ from .models import Post, Like
 from .serializers import PostSerializer
 from apps.notifications.utils import create_notification
 from apps.users.models import Follow
-from utils.response import APIResponse
+from utils.response import APIResponse, swagger_response
 from .signals import post_liked
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 
 # Create your views here.
+@extend_schema(
+    request=PostSerializer,
+    responses={200: swagger_response(PostSerializer, many=True, name_prefix='PostList'), 201: swagger_response(PostSerializer, name_prefix='PostCreate')},
+    description="Lấy danh sách post hoặc tạo post mới"
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def posts(request):
@@ -47,6 +54,11 @@ def posts(request):
         status_code=status.HTTP_400_BAD_REQUEST
     )
 
+@extend_schema(
+    request=None,
+    responses={200: swagger_response(name_prefix='Unlike'), 201: swagger_response(name_prefix='Like')},
+    description="Thích hoặc bỏ thích bài viết"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def like_post(request, post_id):

@@ -7,9 +7,15 @@ from .models import Comment
 from .serializers import CommentSerializer
 from apps.posts.models import Post
 from apps.notifications.utils import create_notification
-from utils.response import APIResponse
+from utils.response import APIResponse, swagger_response
+from drf_spectacular.utils import extend_schema
 
 # Create your views here.
+@extend_schema(
+    request=CommentSerializer,
+    responses={200: swagger_response(CommentSerializer, many=True, name_prefix='CommentList'), 201: swagger_response(CommentSerializer, name_prefix='CommentCreate')},
+    description="Xem danh sách comment hoặc tạo comment mới cho bài viết"
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def comments(request, post_id):

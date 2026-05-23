@@ -4,9 +4,29 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from apps.posts.models import Post
 from apps.posts.serializers import PostSerializer
-from utils.response import APIResponse
+from utils.response import APIResponse, swagger_response
+from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 # Create your views here.
+SearchPostSchema = inline_serializer(
+    name='SearchPostData',
+    fields={
+        'query': serializers.CharField(),
+        'count': serializers.IntegerField(),
+        'results': PostSerializer(many=True)
+    }
+)
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='q', description='Từ khóa tìm kiếm', required=True, type=str),
+    ],
+    responses={200: swagger_response(SearchPostSchema, name_prefix='SearchPost')},
+    description="Tìm kiếm bài viết theo nội dung"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_posts(request):
@@ -36,6 +56,24 @@ def search_posts(request):
         }
     )
 
+from apps.users.serializers import UserSerializer
+
+SearchUserSchema = inline_serializer(
+    name='SearchUserData',
+    fields={
+        'query': serializers.CharField(),
+        'count': serializers.IntegerField(),
+        'results': UserSerializer(many=True)
+    }
+)
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='q', description='Tên username cần tìm kiếm', required=True, type=str),
+    ],
+    responses={200: swagger_response(SearchUserSchema, name_prefix='SearchUser')},
+    description="Tìm kiếm người dùng theo username"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_users(request):

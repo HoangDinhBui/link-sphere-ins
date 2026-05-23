@@ -3,12 +3,38 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from utils.response import APIResponse
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from utils.response import APIResponse, swagger_response
 from .models import User, Follow
 from .serializers import RegisterSerializer, UserSerializer
 from apps.notifications.utils import create_notification
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+from drf_spectacular.types import OpenApiTypes
+
+class CustomLoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+
+        return APIResponse.success(
+            message='Login successful',
+            data=serializer.validated_data,
+            status_code=status.HTTP_200_OK
+        )
+
+
 
 # Create your views here.
+@extend_schema(
+    request=RegisterSerializer,
+    responses={201: swagger_response(UserSerializer, name_prefix='Register')},
+    description="Đăng ký tài khoản mới"
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -22,6 +48,10 @@ def register(request):
     )
     # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    responses={200: swagger_response(UserSerializer, name_prefix='Profile')},
+    description="Lấy thông tin profile cá nhân"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request):
@@ -33,6 +63,12 @@ def profile(request):
         status_code=status.HTTP_200_OK
     )
 
+
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {'username': {'type': 'string'}}}},
+    responses={200: swagger_response(name_prefix='Follow')},
+    description="Follow một người dùng khác bằng username"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def follow(request):
@@ -79,6 +115,11 @@ def follow(request):
         status_code=status.HTTP_200_OK
     )
 
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {'username': {'type': 'string'}}}},
+    responses={200: swagger_response(name_prefix='Unfollow')},
+    description="Bỏ follow một người dùng bằng username"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def unfollow(request):

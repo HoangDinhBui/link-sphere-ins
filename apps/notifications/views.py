@@ -4,9 +4,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Notification
 from .serializers import NotificationSerializer
-from utils.response import APIResponse
+from utils.response import APIResponse, swagger_response
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 
 # Create your views here.
+@extend_schema(
+    responses={200: swagger_response(NotificationSerializer, many=True, name_prefix='NotificationList')},
+    description="Lấy danh sách thông báo của người dùng"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def notifications(request):
@@ -15,6 +21,11 @@ def notifications(request):
     # return Response(serializer.data)
     return APIResponse.success(data=serializer.data)
 
+@extend_schema(
+    request=None,
+    responses={200: swagger_response(name_prefix='NotificationRead')},
+    description="Đánh dấu tất cả thông báo là đã đọc"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_all_read(request):
