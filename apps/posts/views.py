@@ -8,6 +8,7 @@ from .serializers import PostSerializer
 from apps.notifications.utils import create_notification
 from apps.users.models import Follow
 from utils.response import APIResponse
+from .signals import post_liked
 
 # Create your views here.
 @api_view(['GET', 'POST'])
@@ -68,12 +69,7 @@ def like_post(request, post_id):
             status_code=status.HTTP_200_OK
         )
 
-    create_notification(
-        recipient=post.author,
-        sender=request.user,
-        notif_type='like',
-        message=f'{request.user.username} liked your post'
-    )
+    post_liked.send(sender=post.__class__, instance=post, user=request.user)
 
     # return Response({'message': 'Post liked'}, status=status.HTTP_201_CREATED)
     return APIResponse.success(
