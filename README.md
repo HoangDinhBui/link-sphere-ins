@@ -15,6 +15,13 @@ The system is divided into smaller apps to keep things modular and easy to maint
 *   **Notifications (`apps.notifications`)**: Automatically triggers notifications when someone likes your post, comments, or follows you. Includes an API to mark them as read.
 *   **Search (`apps.search`)**: Search for Users and Posts.
 
+## ☁️ Cloud & External APIs Integration (In Development)
+
+To adhere to modern Web application standards and enterprise requirements, LinkSphere integrates with external Cloud Services:
+
+*   **Cloudinary**: Solves the static and media file storage problem (Cloud Infrastructure). It is used for handling image uploads (Avatars, Post images) directly to the cloud, which is a mandatory standard for modern scalable Web applications.
+*   **Resend (Email API)**: Handles user interaction workflows. This perfectly fulfills the requirement of "calling a 3rd-party API" by sending automated welcome and verification emails when a user interacts with the system (e.g., during Registration).
+
 ## 📦 Standardized API Response
 
 This project is set up with a custom Response & Exception Handler. Whether it's a success (200), an error (400, 404), or paginated data, everything returned to the Frontend is wrapped in a consistent, standardized format:
