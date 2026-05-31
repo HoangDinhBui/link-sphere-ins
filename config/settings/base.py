@@ -13,6 +13,7 @@ AUTH_USER_MODEL = 'users.User'
 SECRET_KEY = '5tujRLz5emHic6j3Hd2vwFJ1l06LbRvpg2D9AUAAYVP'
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
     'apps.feed',
     'apps.notifications',
     'apps.search',
+    'apps.chat'
 ]
 
 MIDDLEWARE = [
