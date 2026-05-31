@@ -84,7 +84,7 @@ class TestChatAPI:
         }, format='json')
         assert res2.status_code == 200
         assert res2.data['data']['id'] == conv_id
-        assert "Tái sử dụng" in res2.data['message']
+        assert "Reuse" in res2.data['message']
 
     def test_create_group_conversation_success(self, auth_client1, user1, user2, user3):
         response = auth_client1.post('/api/v1/chat/conversations/', {

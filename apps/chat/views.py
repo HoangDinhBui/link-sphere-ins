@@ -19,7 +19,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 class ChatMessageCursorPagination(CursorPagination):
     page_size = 50
-    ordering = '-created_at' # xếp tin nhắn mới nhất lên đầu
+    ordering = '-id' # xếp tin nhắn mới nhất lên đầu (theo ID)
     cursor_query_param = 'cursor'
 
     def get_paginated_response(self, data):
@@ -195,7 +195,7 @@ class ConversationViewSet(viewsets.ViewSet):
             )
 
         # lấy các tin nhắn chưa bị xóa
-        queryset = Message.objects.filter(conversation=conversation, is_deleted=False).order_by('-created_at')
+        queryset = Message.objects.filter(conversation=conversation, is_deleted=False).order_by('-id')
 
         # phân trang Cursor
         paginator = ChatMessageCursorPagination()
