@@ -43,7 +43,8 @@ def comments(request, post_id):
         recipient=post.author,
         sender=request.user,
         notif_type='comment',
-        message=f'{request.user.username} commented on your post'
+        message=f'{request.user.username} commented on your post',
+        post=post
     )
 
     # return Response(serializer.data, status=status.HTTP_201_CREATED)

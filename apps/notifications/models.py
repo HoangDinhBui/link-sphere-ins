@@ -11,6 +11,7 @@ class Notification(models.Model):
 
     recipient = models.ForeignKey(User, related_name='notifications', on_delete=models.CASCADE)
     sender = models.ForeignKey(User, related_name='sent_notifications', on_delete=models.CASCADE)
+    post = models.ForeignKey('posts.Post', null=True, blank=True, on_delete=models.CASCADE, related_name='notifications')
     type = models.CharField(max_length=20, choices=TYPES)
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)

@@ -106,3 +106,30 @@ class TestFollow:
             'username': 'testuser2'
         }, format='json')
         assert res.status_code == 200
+
+@pytest.mark.django_db
+class TestProfileUpdate:
+    def test_update_profile_display_name(self, auth_client):
+        res = auth_client.patch('/api/v1/users/profile/', {
+            'display_name': 'New Display Name',
+            'bio': 'New Bio'
+        }, format='json')
+        assert res.status_code == 200
+        assert res.data['data']['display_name'] == 'New Display Name'
+        assert res.data['data']['bio'] == 'New Bio'
+
+@pytest.mark.django_db
+class TestUserBookmarks:
+    def test_get_user_bookmarks(self, auth_client, user):
+        from apps.posts.models import Post, Bookmark
+        post = Post.objects.create(author=user, content='Test post')
+        Bookmark.objects.create(user=user, post=post)
+        
+        res = auth_client.get(f'/api/v1/users/{user.username}/bookmarks/')
+        assert res.status_code == 200
+        assert len(res.data['data']) == 1
+        assert res.data['data'][0]['id'] == post.id
+
+    def test_get_other_user_bookmarks_forbidden(self, auth_client, user2):
+        res = auth_client.get(f'/api/v1/users/{user2.username}/bookmarks/')
+        assert res.status_code == 403

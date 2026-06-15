@@ -2,14 +2,15 @@ from .models import Notification
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-def create_notification(recipient, sender, notif_type, message):
+def create_notification(recipient, sender, notif_type, message, post=None):
     if recipient == sender:
         return
     Notification.objects.create(
         recipient=recipient,
         sender=sender,
         type=notif_type,
-        message=message
+        message=message,
+        post=post
     )
 
     channel_layer = get_channel_layer()
@@ -19,6 +20,7 @@ def create_notification(recipient, sender, notif_type, message):
             'type': 'send_notification', # map to method in consumer
             'notification_type': notif_type,
             'message': message,
-            'sender': sender.username
+            'sender': sender.username,
+            'post_id': post.id if post else None
         }
     )

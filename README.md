@@ -1,4 +1,4 @@
-# LinkSphere - Real-time Social Network Backend API 🌐
+# LinkSphere - Real-time Social Network Backend API
 
 [![Django Version](https://img.shields.io/badge/Django-5.2+-green.svg?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![DRF Version](https://img.shields.io/badge/DRF-3.17+-red.svg?style=for-the-badge&logo=django&logoColor=white)](https://www.django-rest-framework.org/)
@@ -12,14 +12,15 @@
 ---
 
 ## 📌 Table of Contents
-* [⚡ Core Features](#-core-features)
-* [🏗️ System Architecture & Tech Stack](#️-system-architecture--tech-stack)
-* [💾 Database Schema Design](#-database-schema-design)
-* [⚡ Standardized API Response Format](#-standardized-api-response-format)
-* [🛠️ Local Setup & Installation Guide](#️-local-setup--installation-guide)
-* [🧪 Running the Test Suite](#-running-the-test-suite)
-* [📡 WebSockets Chat Protocol Specification](#-websockets-chat-protocol-specification)
-* [🤝 Contribution & License](#-contribution--license)
+
+- [⚡ Core Features](#-core-features)
+- [🏗️ System Architecture & Tech Stack](#️-system-architecture--tech-stack)
+- [💾 Database Schema Design](#-database-schema-design)
+- [⚡ Standardized API Response Format](#-standardized-api-response-format)
+- [🛠️ Local Setup & Installation Guide](#️-local-setup--installation-guide)
+- [🧪 Running the Test Suite](#-running-the-test-suite)
+- [📡 WebSockets Chat Protocol Specification](#-websockets-chat-protocol-specification)
+- [🤝 Contribution & License](#-contribution--license)
 
 ---
 
@@ -27,20 +28,20 @@
 
 The system is highly modularized, with core apps located in the `apps/` folder:
 
-*   **Authentication & Users (`apps.users`)**: Registration, secure login utilizing **JWT (Access & Refresh Tokens)**, viewing/updating profiles, and Follow / Unfollow functionality.
-*   **Posts (`apps.posts`)**: Creating new posts with cloud-based image uploads, newsfeed post retrieval, and post Liking / Unliking.
-*   **Comments (`apps.comments`)**: Multi-level commenting system on posts.
-*   **Feeds (`apps.feed`)**:
-    *   `Feed`: Displays posts only from users that the current user follows (sorted chronologically).
-    *   `Explore`: Displays all public posts for content discovery.
-*   **Notifications (`apps.notifications`)**: Automatically triggers real-time one-way push notifications (via WebSockets) on user interactions (likes, comments, new follows). Supports marking notifications as read.
-*   **Search (`apps.search`)**: Intelligent querying for both Users and Posts.
-*   **Real-time Chat (`apps.chat`)**:
-    *   Trò chuyện 1-đối-1 (Direct Chat) and Group Chats.
-    *   Automatic lookup and reuse of existing direct chat rooms to optimize resources.
-    *   **WebSockets Real-time**: Instant message delivery, typing indicators, and read receipts.
-    *   **Cursor-based Pagination** for message history retrieval to prevent duplicate entries when scrolling.
-    *   Uploading image/video/file attachments directly to **Cloudinary CDN** via dedicated APIs.
+- **Authentication & Users (`apps.users`)**: Registration, secure login utilizing **JWT (Access & Refresh Tokens)**, viewing/updating profiles, and Follow / Unfollow functionality.
+- **Posts (`apps.posts`)**: Creating new posts with cloud-based image uploads, newsfeed post retrieval, and post Liking / Unliking.
+- **Comments (`apps.comments`)**: Multi-level commenting system on posts.
+- **Feeds (`apps.feed`)**:
+  - `Feed`: Displays posts only from users that the current user follows (sorted chronologically).
+  - `Explore`: Displays all public posts for content discovery.
+- **Notifications (`apps.notifications`)**: Automatically triggers real-time one-way push notifications (via WebSockets) on user interactions (likes, comments, new follows). Supports marking notifications as read.
+- **Search (`apps.search`)**: Intelligent querying for both Users and Posts.
+- **Real-time Chat (`apps.chat`)**:
+  - Trò chuyện 1-đối-1 (Direct Chat) and Group Chats.
+  - Automatic lookup and reuse of existing direct chat rooms to optimize resources.
+  - **WebSockets Real-time**: Instant message delivery, typing indicators, and read receipts.
+  - **Cursor-based Pagination** for message history retrieval to prevent duplicate entries when scrolling.
+  - Uploading image/video/file attachments directly to **Cloudinary CDN** via dedicated APIs.
 
 ---
 
@@ -50,14 +51,14 @@ The system is highly modularized, with core apps located in the `apps/` folder:
 graph TD
     Client[Client App: Browser / Mobile] -->|1. HTTPS: REST API| Nginx[Nginx Web Server]
     Client -->|2. WSS: WebSockets| Nginx
-    
+
     subgraph Backend Services
         Nginx -->|Route HTTP| WSGI[WSGI Server: Gunicorn]
         Nginx -->|Route WSS| ASGI[ASGI Server: Daphne]
-        
+
         WSGI --> Django[Django REST Framework]
         ASGI --> Channels[Django Channels]
-        
+
         JWT[JWT Auth Middleware] -.->|Authenticate| ASGI
     end
 
@@ -72,13 +73,14 @@ graph TD
 ```
 
 ### Core Technologies:
-*   **Backend Framework:** Django & Django REST Framework (DRF).
-*   **Real-time Engine:** Django Channels, running under the Daphne ASGI Server.
-*   **Channel Layer:** **Redis** (`channels_redis`) acting as the message broker for asynchronous socket distribution.
-*   **Cloud Integrations:**
-    *   **Cloudinary Storage:** Securely stores and serves avatars and post images via CDN.
-    *   **Resend API:** Handles automated welcome and verification emails during registration.
-*   **Testing:** Pytest & Pytest-Django to automate local test execution.
+
+- **Backend Framework:** Django & Django REST Framework (DRF).
+- **Real-time Engine:** Django Channels, running under the Daphne ASGI Server.
+- **Channel Layer:** **Redis** (`channels_redis`) acting as the message broker for asynchronous socket distribution.
+- **Cloud Integrations:**
+  - **Cloudinary Storage:** Securely stores and serves avatars and post images via CDN.
+  - **Resend API:** Handles automated welcome and verification emails during registration.
+- **Testing:** Pytest & Pytest-Django to automate local test execution.
 
 ---
 
@@ -126,8 +128,9 @@ erDiagram
 
 > [!TIP]
 > **Database Index Optimization:**
-> *   **Composite Index** on `CONVERSATION_PARTICIPANT` for `(user_id, conversation_id)` allows fast access validation when connecting or sending messages.
-> *   **Composite Index** on `MESSAGE` for `(conversation_id, id)` optimizes the Cursor-based pagination query to retrieve sorted messages descendingly without performing memory-intensive sorts.
+>
+> - **Composite Index** on `CONVERSATION_PARTICIPANT` for `(user_id, conversation_id)` allows fast access validation when connecting or sending messages.
+> - **Composite Index** on `MESSAGE` for `(conversation_id, id)` optimizes the Cursor-based pagination query to retrieve sorted messages descendingly without performing memory-intensive sorts.
 
 ---
 
@@ -136,38 +139,40 @@ erDiagram
 All responses returned from the Backend API are standardized to maintain a uniform structure for Frontend integration:
 
 ### Success Response
+
 ```json
 {
-    "success": true,
-    "message": "Create direct chat successfully.",
-    "data": {
-        "id": "a0831845-43b5-4f43-b19b-ebecc3081bf1",
-        "title": "testuser",
-        "type": "direct",
-        "avatar": null,
-        "created_at": "2026-05-31T03:00:00Z",
-        "updated_at": "2026-05-31T03:41:18Z",
-        "last_message": null,
-        "unread_count": 0,
-        "other_participant": {
-            "id": 2,
-            "username": "testuser",
-            "email": "test@gmail.com",
-            "avatar": null
-        }
-    },
-    "timestamp": "2026-05-31T03:41:19Z"
+  "success": true,
+  "message": "Create direct chat successfully.",
+  "data": {
+    "id": "a0831845-43b5-4f43-b19b-ebecc3081bf1",
+    "title": "testuser",
+    "type": "direct",
+    "avatar": null,
+    "created_at": "2026-05-31T03:00:00Z",
+    "updated_at": "2026-05-31T03:41:18Z",
+    "last_message": null,
+    "unread_count": 0,
+    "other_participant": {
+      "id": 2,
+      "username": "testuser",
+      "email": "test@gmail.com",
+      "avatar": null
+    }
+  },
+  "timestamp": "2026-05-31T03:41:19Z"
 }
 ```
 
 ### Error Response
+
 ```json
 {
-    "success": false,
-    "message": "Recipient not found.",
-    "errors": [],
-    "errorCode": "RECIPIENT_NOT_FOUND",
-    "timestamp": "2026-05-31T03:42:00Z"
+  "success": false,
+  "message": "Recipient not found.",
+  "errors": [],
+  "errorCode": "RECIPIENT_NOT_FOUND",
+  "timestamp": "2026-05-31T03:42:00Z"
 }
 ```
 
@@ -176,18 +181,21 @@ All responses returned from the Backend API are standardized to maintain a unifo
 ## 🛠️ Local Setup & Installation Guide
 
 ### System Requirements:
-*   Python 3.11 or higher.
-*   Redis server running on the default port `6379`.
+
+- Python 3.11 or higher.
+- Redis server running on the default port `6379`.
 
 ### Installation Steps:
 
 1.  **Clone the Repository:**
+
     ```bash
     git clone <url-repository>
     cd link-sphere
     ```
 
 2.  **Create and Activate a Virtual Environment:**
+
     ```bash
     python -m venv .venv
     # Windows:
@@ -197,12 +205,14 @@ All responses returned from the Backend API are standardized to maintain a unifo
     ```
 
 3.  **Install the Required Dependencies:**
+
     ```bash
     pip install -r requirements.txt
     ```
 
 4.  **Configure Environment Variables (`.env`):**
     Create a `.env` file at the project root and fill in your configurations:
+
     ```env
     SECRET_KEY=your-django-secret-key
     CLOUDINARY_CLOUD_NAME=your-cloud-name
@@ -212,6 +222,7 @@ All responses returned from the Backend API are standardized to maintain a unifo
     ```
 
 5.  **Run Migrations:**
+
     ```bash
     python manage.py makemigrations
     python manage.py migrate
@@ -221,7 +232,7 @@ All responses returned from the Backend API are standardized to maintain a unifo
     ```bash
     python manage.py runserver
     ```
-    *Ensure you see `Starting ASGI development server...` in the terminal logs.*
+    _Ensure you see `Starting ASGI development server...` in the terminal logs._
 
 ---
 
@@ -234,6 +245,7 @@ pytest
 ```
 
 All 28 tests (covering Authentication, Follows, Feeds, Posts, and Chat flows) will run:
+
 ```bash
 Collected 28 items
 
@@ -253,7 +265,9 @@ Establish a connection by completing a WebSocket handshake at:
 `ws://127.0.0.1:8000/ws/chat/?token=<JWT_ACCESS_TOKEN>`
 
 ### 1. Sending a New Message (Client -> Server)
+
 **Action:** `send_message`
+
 ```json
 {
   "action": "send_message",
@@ -265,7 +279,9 @@ Establish a connection by completing a WebSocket handshake at:
 ```
 
 ### 2. Message Received Event (Server -> Client)
+
 **Event:** `message_received`
+
 ```json
 {
   "event": "message_received",
@@ -286,7 +302,9 @@ Establish a connection by completing a WebSocket handshake at:
 ```
 
 ### 3. Typing Indicator (Client -> Server -> Client)
+
 **Send typing status:**
+
 ```json
 {
   "action": "typing",
@@ -296,7 +314,9 @@ Establish a connection by completing a WebSocket handshake at:
 ```
 
 ### 4. Read Message Notification (Client -> Server -> Client)
+
 **Send read receipt:**
+
 ```json
 {
   "action": "read_messages",
@@ -309,6 +329,6 @@ Establish a connection by completing a WebSocket handshake at:
 
 ## 🤝 Contribution & License
 
-*   Distributed under the **MIT License**.
-*   Contributions are welcome! Please feel free to open a Pull Request or submit an Issue directly in the repository.
-*   **Authors:** LinkSphere Development Team 🌐
+- Distributed under the **MIT License**.
+- Contributions are welcome! Please feel free to open a Pull Request or submit an Issue directly in the repository.
+- **Authors:** LinkSphere Development Team 🌐

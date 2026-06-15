@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 @shared_task
-def send_notification_task(recipient_id, sender_id, notif_type, message):
+def send_notification_task(recipient_id, sender_id, notif_type, message, post_id=None):
     if recipient_id == sender_id:
         return
         
@@ -15,7 +15,8 @@ def send_notification_task(recipient_id, sender_id, notif_type, message):
         recipient_id=recipient_id,
         sender_id=sender_id,
         type=notif_type,
-        message=message
+        message=message,
+        post_id=post_id
     )
 
     # get sender username for the real-time event
@@ -32,6 +33,7 @@ def send_notification_task(recipient_id, sender_id, notif_type, message):
             'type': 'send_notification', # map to method in consumer
             'notification_type': notif_type,
             'message': message,
-            'sender': sender_username
+            'sender': sender_username,
+            'post_id': post_id
         }
     )
