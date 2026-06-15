@@ -13,5 +13,6 @@ def handle_post_liked(sender, instance, user, **kwargs):
         recipient_id=instance.author.id,
         sender_id=user.id,
         notif_type='like',
-        message=f'{user.username} liked your post'
+        message=f'{user.username} liked your post',
+        post_id=instance.id
     )

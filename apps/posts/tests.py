@@ -92,3 +92,21 @@ class TestComments:
             'content': 'Nice!'
         }, format='json')
         assert res.status_code == 404
+
+@pytest.mark.django_db
+class TestBookmarks:
+    def test_bookmark_post(self, auth_client, post):
+        res = auth_client.post(f'/api/v1/posts/{post.id}/bookmark/')
+        assert res.status_code == 201
+        assert res.data['message'] == 'Post bookmarked successfully'
+
+    def test_unbookmark_post(self, auth_client, user, post):
+        from apps.posts.models import Bookmark
+        Bookmark.objects.create(user=user, post=post)
+        res = auth_client.post(f'/api/v1/posts/{post.id}/bookmark/')
+        assert res.status_code == 200
+        assert res.data['message'] == 'Post removed from bookmarks'
+
+    def test_bookmark_nonexistent_post(self, auth_client):
+        res = auth_client.post('/api/v1/posts/9999/bookmark/')
+        assert res.status_code == 404

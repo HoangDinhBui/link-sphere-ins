@@ -11,6 +11,8 @@ from .serializers import RegisterSerializer, UserSerializer
 from apps.notifications.utils import create_notification
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
+from apps.posts.models import Post
+from apps.posts.serializers import PostSerializer
 
 class CustomLoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -79,7 +81,7 @@ def register(request):
             resend.Emails.send({
                 "from": "LinkSphere <onboarding@resend.dev>",
                 "to": user.email,
-                "subject": "Chào mừng bạn đến với LinkSphere! 🚀",
+                "subject": "Chào mừng bạn đến với LinkSphere!",
                 "html": html_content
             })
     except Exception as e:
@@ -93,18 +95,35 @@ def register(request):
     # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @extend_schema(
+    request=UserSerializer,
     responses={200: swagger_response(UserSerializer, name_prefix='Profile')},
-    description="Lấy thông tin profile cá nhân"
+    description="Lấy hoặc cập nhật thông tin profile cá nhân"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def profile(request):
-    serializer = UserSerializer(request.user)
-    # return Response(serializer.data)
-    return APIResponse.success(
-        message='User profile retrieved successfully',
-        data=serializer.data,
-        status_code=status.HTTP_200_OK
+    if request.method == 'GET':
+        serializer = UserSerializer(request.user)
+        return APIResponse.success(
+            message='User profile retrieved successfully',
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
+    
+    # PATCH logic
+    serializer = UserSerializer(request.user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return APIResponse.success(
+            message='User profile updated successfully',
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
+    return APIResponse.error(
+        message='Failed to update profile',
+        error_code='UPDATE_PROFILE_FAILED',
+        data=serializer.errors,
+        status_code=status.HTTP_400_BAD_REQUEST
     )
 
 
@@ -203,4 +222,65 @@ def unfollow(request):
             status_code=status.HTTP_400_BAD_REQUEST
         )
 
+@extend_schema(
+    responses={200: swagger_response(PostSerializer, many=True, name_prefix='UserPosts')},
+    description="Lấy danh sách bài viết của một user theo username"
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_posts(request, username):
+    try:
+        target_user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return APIResponse.error(
+            message='User not found',
+            error_code='USER_NOT_FOUND',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    posts = Post.objects.filter(author=target_user).select_related('author').prefetch_related('likes', 'comments').order_by('-created_at')
+    serializer = PostSerializer(posts, many=True, context={'request': request})
+    
+    return APIResponse.success(
+        message=f'Retrieved posts for {username}',
+        data=serializer.data,
+        status_code=status.HTTP_200_OK
+    )
+
+from apps.posts.models import Bookmark
+
+@extend_schema(
+    responses={200: swagger_response(PostSerializer, many=True, name_prefix='UserBookmarks')},
+    description="Lấy danh sách bài viết đã lưu (bookmark) của một user theo username"
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_bookmarks(request, username):
+    try:
+        target_user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return APIResponse.error(
+            message='User not found',
+            error_code='USER_NOT_FOUND',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    # Chỉ cho phép xem bookmark của chính mình
+    if target_user != request.user:
+        return APIResponse.error(
+            message='You do not have permission to view these bookmarks',
+            error_code='PERMISSION_DENIED',
+            status_code=status.HTTP_403_FORBIDDEN
+        )
+
+    bookmarks = Bookmark.objects.filter(user=target_user, post__is_delete=False).select_related('post', 'post__author').order_by('-created_at')
+    bookmarked_posts = [bookmark.post for bookmark in bookmarks]
+    
+    serializer = PostSerializer(bookmarked_posts, many=True, context={'request': request})
+    
+    return APIResponse.success(
+        message='Retrieved bookmarked posts successfully',
+        data=serializer.data,
+        status_code=status.HTTP_200_OK
+    )
 
