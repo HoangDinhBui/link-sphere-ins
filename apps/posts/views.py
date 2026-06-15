@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Post, Like
+from .models import Post, Like, User
 from .serializers import PostSerializer
 from apps.notifications.utils import create_notification
 from apps.users.models import Follow
@@ -22,7 +22,7 @@ from drf_spectacular.types import OpenApiTypes
 @permission_classes([IsAuthenticated])
 def posts(request):
     if request.method == 'GET':
-        all_post = Post.objects.select_related('author').prefetch_related('likes', 'comments').all()
+        all_post = Post.objects.select_related('author').prefetch_related('likes', 'comments').filter(is_delete=False)
         serializer = PostSerializer(all_post, many=True, context={'request': request})
         # return Response(serializer.data, status=status.HTTP_200_OK)
         return APIResponse.success(data=serializer.data)
@@ -37,7 +37,8 @@ def posts(request):
                 recipient=follower,
                 sender=request.user,
                 notif_type='new_post',
-                message=f'{request.user.username} has posted a new update'
+                message=f'{request.user.username} has posted a new update',
+                post=post
             )
 
         # return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -55,6 +56,45 @@ def posts(request):
     )
 
 @extend_schema(
+    request=PostSerializer,
+    responses={200: swagger_response(PostSerializer, many=True, name_prefix='PostDelete'), 201: swagger_response(PostSerializer, name_prefix='PostDelete')},
+    description="Xoá 1 bài post"
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return APIResponse.error(
+            message="Post not found",
+            error_code="POST_NOT_FOUND",
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    if post.author != request.user:
+        return APIResponse.error(
+            message="You do not have permission to delete this post",
+            error_code="PERMISSION_DENIED",
+            status_code=status.HTTP_403_FORBIDDEN
+        )
+
+    if post.is_delete:
+        return APIResponse.error(
+            message="Post has already been deleted",
+            error_code="POST_ALREADY_DELETED",
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    post.is_delete=True
+    post.save()
+
+    return APIResponse.success(
+        message="Delete post success",
+        status_code=status.HTTP_200_OK
+    )
+
+@extend_schema(
     request=None,
     responses={200: swagger_response(name_prefix='Unlike'), 201: swagger_response(name_prefix='Like')},
     description="Thích hoặc bỏ thích bài viết"
@@ -63,7 +103,7 @@ def posts(request):
 @permission_classes([IsAuthenticated])
 def like_post(request, post_id):
     try:
-        post = Post.objects.get(id=post_id)
+        post = Post.objects.get(id=post_id, is_delete=False)
     except Post.DoesNotExist:
         # return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
         return APIResponse.error(
@@ -86,5 +126,37 @@ def like_post(request, post_id):
     # return Response({'message': 'Post liked'}, status=status.HTTP_201_CREATED)
     return APIResponse.success(
         message='Post liked',
+        status_code=status.HTTP_201_CREATED
+    )
+
+from .models import Bookmark
+
+@extend_schema(
+    request=None,
+    responses={200: swagger_response(name_prefix='Unbookmark'), 201: swagger_response(name_prefix='Bookmark')},
+    description="Lưu hoặc bỏ lưu bài viết (Bookmark)"
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_bookmark(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id, is_delete=False)
+    except Post.DoesNotExist:
+        return APIResponse.error(
+            message='Post not found',
+            error_code='POST_NOT_FOUND',
+            status_code=status.HTTP_404_NOT_FOUND
+        )
+
+    bookmark, created = Bookmark.objects.get_or_create(user=request.user, post=post)
+    if not created:
+        bookmark.delete()
+        return APIResponse.success(
+            message='Post removed from bookmarks',
+            status_code=status.HTTP_200_OK
+        )
+
+    return APIResponse.success(
+        message='Post bookmarked successfully',
         status_code=status.HTTP_201_CREATED
     )
