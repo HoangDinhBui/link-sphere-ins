@@ -21,3 +21,7 @@ def extract_hashtags_from_post(sender, instance, created, **kwargs):
         instance.hashtags.set(hashtag_objs)
     else:
         instance.hashtags.clear()
+        
+    # Update search vector for PostgreSQL Full-Text Search
+    from django.contrib.postgres.search import SearchVector
+    Post.objects.filter(pk=instance.pk).update(search_vector=SearchVector('content'))
