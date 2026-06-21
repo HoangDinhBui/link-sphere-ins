@@ -37,13 +37,16 @@ def auth_client(client, user):
 @pytest.mark.django_db
 class TestRegister:
     def test_register_success(self, client):
-        res = client.post('/api/v1/users/register/', {
-            'username': 'newuser',
-            'email': 'new@gmail.com',
-            'password': '123456'
-        }, format='json')
-        assert res.status_code == 201
-        assert res.data['data']['username'] == 'newuser'
+        from unittest.mock import patch
+        with patch('apps.users.tasks.send_welcome_email.delay') as mock_delay:
+            res = client.post('/api/v1/users/register/', {
+                'username': 'newuser',
+                'email': 'new@gmail.com',
+                'password': '123456'
+            }, format='json')
+            assert res.status_code == 201
+            assert res.data['data']['username'] == 'newuser'
+            mock_delay.assert_called_once()
 
     def test_register_duplicate_username(self, client, user):
         res = client.post('/api/v1/users/register/', {
@@ -133,3 +136,38 @@ class TestUserBookmarks:
     def test_get_other_user_bookmarks_forbidden(self, auth_client, user2):
         res = auth_client.get(f'/api/v1/users/{user2.username}/bookmarks/')
         assert res.status_code == 403
+
+@pytest.mark.django_db
+class TestPresenceAPI:
+    def test_presence_missing_user_ids(self, auth_client):
+        res = auth_client.get('/api/v1/users/presence/')
+        assert res.status_code == 400
+        assert res.data['errorCode'] == 'MISSING_USER_IDS'
+
+    def test_presence_invalid_user_ids(self, auth_client):
+        res = auth_client.get('/api/v1/users/presence/?user_ids=abc,123')
+        assert res.status_code == 400
+        assert res.data['errorCode'] == 'INVALID_USER_IDS'
+
+    def test_presence_success(self, auth_client, user):
+        from unittest.mock import patch
+        from django.utils import timezone
+        
+        now = timezone.now().isoformat()
+        
+        # Mock cache.get so we don't need real Redis running
+        with patch('apps.users.views.cache.get') as mock_get:
+            def side_effect(key):
+                if key == f"user:online:{user.id}":
+                    return now
+                return None
+            mock_get.side_effect = side_effect
+            
+            res = auth_client.get(f'/api/v1/users/presence/?user_ids={user.id},999')
+            assert res.status_code == 200
+            
+            data = res.data['data']
+            assert user.id in data
+            assert data[user.id]['status'] == 'online'
+            assert data[user.id]['last_seen'] == now
+            assert data[999]['status'] == 'offline'

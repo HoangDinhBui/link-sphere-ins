@@ -2,6 +2,8 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.cache import cache
+from django.utils import timezone
 from apps.chat.models import Conversation, ConversationParticipant, Message
 from apps.users.models import User
 
@@ -16,11 +18,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Việc này giúp họ nhận tin nhắn thời gian thực từ bất kỳ cuộc hội thoại nào họ tham gia
         self.user_group = f"user_{self.user.id}"
         await self.channel_layer.group_add(self.user_group, self.channel_name)
+        
+        # Đánh dấu user đang online trên Redis (TTL: 60s)
+        await cache.aset(f"user:online:{self.user.id}", timezone.now().isoformat(), timeout=60)
+        
         await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'user_group'):
             await self.channel_layer.group_discard(self.user_group, self.channel_name)
+        if hasattr(self, 'user') and not self.user.is_anonymous:
+            # Gỡ trạng thái online ngay khi ngắt kết nối
+            await cache.adelete(f"user:online:{self.user.id}")
 
     async def receive(self, text_data):
         try:
@@ -41,7 +50,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             handlers = {
                 'send_message': self.handle_send_message,
                 'typing': self.handle_typing,
-                'read_messages': self.handle_read_messages
+                'read_messages': self.handle_read_messages,
+                'ping': self.handle_ping,
+                'webrtc_offer': self.handle_webrtc_signaling,
+                'webrtc_answer': self.handle_webrtc_signaling,
+                'webrtc_ice_candidate': self.handle_webrtc_signaling,
+                'webrtc_reject': self.handle_webrtc_signaling,
+                'webrtc_end': self.handle_webrtc_signaling,
             }
 
             handler = handlers.get(action)
@@ -135,6 +150,36 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         for user_id in participants:
             await self.channel_layer.group_send(f"user_{user_id}", payload)
+
+    async def handle_ping(self, data):
+        # Gia hạn trạng thái online thêm 60 giây
+        await cache.aset(f"user:online:{self.user.id}", timezone.now().isoformat(), timeout=60)
+        await self.send(text_data=json.dumps({
+            'event': 'pong',
+            'data': {'status': 'ok'}
+        }))
+
+    async def handle_webrtc_signaling(self, data):
+        conversation_id = data.get('conversation_id')
+        target_user_id = data.get('target_user_id') # Tùy chọn: Gửi đích danh cho 1 user (như người gọi)
+        participants = await self.get_conversation_participants(conversation_id)
+
+        payload = {
+            'type': 'chat_message',
+            'event': data.get('action'),
+            'data': {
+                'conversation_id': conversation_id,
+                'sender_id': self.user.id,
+                'payload': data.get('payload') # Chứa SDP hoặc ICE Candidate
+            }
+        }
+
+        # Phát tín hiệu tới người khác trong phòng (hoặc người được chỉ định)
+        for user_id in participants:
+            if user_id != self.user.id:
+                if target_user_id and user_id != target_user_id:
+                    continue
+                await self.channel_layer.group_send(f"user_{user_id}", payload)
 
     @database_sync_to_async
     def is_conversation_member(self, conversation_id):
