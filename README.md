@@ -47,29 +47,52 @@ The system is highly modularized, with core apps located in the `apps/` folder:
 
 ## 🏗️ System Architecture & Tech Stack
 
-```mermaid
-graph TD
-    Client[Client App: Browser / Mobile] -->|1. HTTPS: REST API| Nginx[Nginx Web Server]
-    Client -->|2. WSS: WebSockets| Nginx
+```plantuml
+@startuml
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
 
-    subgraph Backend Services
-        Nginx -->|Route HTTP| WSGI[WSGI Server: Gunicorn]
-        Nginx -->|Route WSS| ASGI[ASGI Server: Daphne]
+node "Client" {
+  [Client App: Browser / Mobile] as ClientApp
+}
 
-        WSGI --> Django[Django REST Framework]
-        ASGI --> Channels[Django Channels]
+node "Nginx" {
+  [Nginx Web Server] as NginxSrv
+}
 
-        JWT[JWT Auth Middleware] -.->|Authenticate| ASGI
-    end
+package "Backend Services" {
+  [WSGI Server: Gunicorn] as WSGI
+  [ASGI Server: Daphne] as ASGI
+  [Django REST Framework] as Django
+  [Django Channels] as Channels
+  [JWT Auth Middleware] as JWT
+}
 
-    subgraph Memory & Cache Layer
-        Channels <-->|Pub/Sub Channel Layer| Redis[(Redis InMemory DB)]
-    end
+package "Memory & Cache Layer" {
+  database "Redis InMemory DB" as RedisDB
+}
 
-    subgraph Storage & Database
-        Django <-->|Read/Write Data| DB[(MySQL / SQLite)]
-        Django -->|Upload Media| Cloudinary[Cloudinary Cloud Storage]
-    end
+package "Storage & Database" {
+  database "MySQL / SQLite" as MainDB
+  cloud "Cloudinary Cloud Storage" as CloudinaryCDN
+}
+
+ClientApp --> NginxSrv : 1. HTTPS: REST API
+ClientApp --> NginxSrv : 2. WSS: WebSockets
+
+NginxSrv --> WSGI : Route HTTP
+NginxSrv --> ASGI : Route WSS
+
+WSGI --> Django
+ASGI --> Channels
+
+JWT ..> ASGI : Authenticate
+
+Channels <--> RedisDB : Pub/Sub Channel Layer
+
+Django <--> MainDB : Read/Write Data
+Django --> CloudinaryCDN : Upload Media
+@enduml
 ```
 
 ### Core Technologies:
@@ -88,42 +111,53 @@ graph TD
 
 To support group chats and optimize query performance, the chat schema is structured as follows:
 
-```mermaid
-erDiagram
-    USER ||--o{ CONVERSATION_PARTICIPANT : participates
-    CONVERSATION ||--o{ CONVERSATION_PARTICIPANT : has
-    CONVERSATION ||--o{ MESSAGE : contains
-    USER ||--o{ MESSAGE : sends
+```plantuml
+@startuml
+skinparam linetype ortho
+hide circle
 
-    CONVERSATION {
-        uuid id PK
-        string title "Nullable (for Group Chats)"
-        string type "enum: 'direct' | 'group'"
-        string avatar "Group avatar URL"
-        datetime created_at
-        datetime updated_at "Stores time of the latest message"
-    }
+entity "USER" as user {
+  * id : int <<PK>>
+}
 
-    CONVERSATION_PARTICIPANT {
-        int id PK
-        uuid conversation_id FK
-        int user_id FK
-        string role "enum: 'admin' | 'member'"
-        datetime joined_at
-        int last_read_message_id "ID of the last message read by the user"
-    }
+entity "CONVERSATION" as conversation {
+  * id : uuid <<PK>>
+  --
+  title : string <<Nullable>>
+  type : string <<'direct' | 'group'>>
+  avatar : string
+  created_at : datetime
+  updated_at : datetime
+}
 
-    MESSAGE {
-        bigint id PK
-        uuid conversation_id FK
-        int sender_id FK
-        text content
-        string message_type "enum: 'text' | 'image' | 'video' | 'file' | 'system'"
-        string file_url "Cloudinary URL if media is attached"
-        datetime created_at
-        datetime updated_at
-        boolean is_deleted "Soft delete flag"
-    }
+entity "CONVERSATION_PARTICIPANT" as participant {
+  * id : int <<PK>>
+  --
+  * conversation_id : uuid <<FK>>
+  * user_id : int <<FK>>
+  role : string <<'admin' | 'member'>>
+  joined_at : datetime
+  last_read_message_id : int
+}
+
+entity "MESSAGE" as message {
+  * id : bigint <<PK>>
+  --
+  * conversation_id : uuid <<FK>>
+  * sender_id : int <<FK>>
+  content : text
+  message_type : string <<'text' | 'image' | 'video' | 'file' | 'system'>>
+  file_url : string
+  created_at : datetime
+  updated_at : datetime
+  is_deleted : boolean
+}
+
+user ||--o{ participant : "participates"
+conversation ||--o{ participant : "has"
+conversation ||--o{ message : "contains"
+user ||--o{ message : "sends"
+@enduml
 ```
 
 > [!TIP]

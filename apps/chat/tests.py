@@ -129,3 +129,61 @@ class TestChatAPI:
         # Kiểm tra xem API có tự động đánh dấu đã đọc tin nhắn mới nhất không
         participant1.refresh_from_db()
         assert participant1.last_read_message_id == msg2.id
+
+from unittest.mock import patch, AsyncMock
+from apps.chat.consumers import ChatConsumer
+import pytest
+
+@pytest.mark.django_db(transaction=True)
+class TestChatConsumerWebRTC:
+    @pytest.mark.asyncio
+    async def test_webrtc_signaling_broadcast(self, user1, user2):
+        conv = await Conversation.objects.acreate(type='direct')
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user1)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user2)
+
+        consumer = ChatConsumer()
+        consumer.user = user1
+        consumer.channel_layer = AsyncMock()
+        consumer.channel_layer.group_send = AsyncMock()
+        
+        data = {
+            'action': 'webrtc_offer',
+            'conversation_id': str(conv.id),
+            'payload': {'sdp': 'test_sdp'}
+        }
+        
+        await consumer.handle_webrtc_signaling(data)
+        
+        consumer.channel_layer.group_send.assert_called_once()
+        args, kwargs = consumer.channel_layer.group_send.call_args
+        assert args[0] == f"user_{user2.id}"
+        assert args[1]['event'] == 'webrtc_offer'
+        assert args[1]['data']['sender_id'] == user1.id
+        assert args[1]['data']['payload'] == {'sdp': 'test_sdp'}
+
+    @pytest.mark.asyncio
+    async def test_webrtc_signaling_targeted(self, user1, user2, user3):
+        conv = await Conversation.objects.acreate(type='group', title="Test Group")
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user1)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user2)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user3)
+
+        consumer = ChatConsumer()
+        consumer.user = user1
+        consumer.channel_layer = AsyncMock()
+        consumer.channel_layer.group_send = AsyncMock()
+        
+        data = {
+            'action': 'webrtc_answer',
+            'conversation_id': str(conv.id),
+            'target_user_id': user2.id,
+            'payload': {'sdp': 'test_answer'}
+        }
+        
+        await consumer.handle_webrtc_signaling(data)
+        
+        consumer.channel_layer.group_send.assert_called_once()
+        args, kwargs = consumer.channel_layer.group_send.call_args
+        assert args[0] == f"user_{user2.id}"
+        assert args[1]['event'] == 'webrtc_answer'
