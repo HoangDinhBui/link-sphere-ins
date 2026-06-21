@@ -132,14 +132,15 @@ class TestChatAPI:
 
 from unittest.mock import patch, AsyncMock
 from apps.chat.consumers import ChatConsumer
-from asgiref.sync import async_to_sync
+import pytest
 
 @pytest.mark.django_db(transaction=True)
 class TestChatConsumerWebRTC:
-    def test_webrtc_signaling_broadcast(self, user1, user2):
-        conv = Conversation.objects.create(type='direct')
-        ConversationParticipant.objects.create(conversation=conv, user=user1)
-        ConversationParticipant.objects.create(conversation=conv, user=user2)
+    @pytest.mark.asyncio
+    async def test_webrtc_signaling_broadcast(self, user1, user2):
+        conv = await Conversation.objects.acreate(type='direct')
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user1)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user2)
 
         consumer = ChatConsumer()
         consumer.user = user1
@@ -152,7 +153,7 @@ class TestChatConsumerWebRTC:
             'payload': {'sdp': 'test_sdp'}
         }
         
-        async_to_sync(consumer.handle_webrtc_signaling)(data)
+        await consumer.handle_webrtc_signaling(data)
         
         consumer.channel_layer.group_send.assert_called_once()
         args, kwargs = consumer.channel_layer.group_send.call_args
@@ -161,19 +162,18 @@ class TestChatConsumerWebRTC:
         assert args[1]['data']['sender_id'] == user1.id
         assert args[1]['data']['payload'] == {'sdp': 'test_sdp'}
 
-    def test_webrtc_signaling_targeted(self, user1, user2, user3):
-        # Tạo group chat 3 người
-        conv = Conversation.objects.create(type='group', title="Test Group")
-        ConversationParticipant.objects.create(conversation=conv, user=user1)
-        ConversationParticipant.objects.create(conversation=conv, user=user2)
-        ConversationParticipant.objects.create(conversation=conv, user=user3)
+    @pytest.mark.asyncio
+    async def test_webrtc_signaling_targeted(self, user1, user2, user3):
+        conv = await Conversation.objects.acreate(type='group', title="Test Group")
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user1)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user2)
+        await ConversationParticipant.objects.acreate(conversation=conv, user=user3)
 
         consumer = ChatConsumer()
         consumer.user = user1
         consumer.channel_layer = AsyncMock()
         consumer.channel_layer.group_send = AsyncMock()
         
-        # Chỉ gửi webrtc_answer cho user2, user3 không được nhận
         data = {
             'action': 'webrtc_answer',
             'conversation_id': str(conv.id),
@@ -181,7 +181,7 @@ class TestChatConsumerWebRTC:
             'payload': {'sdp': 'test_answer'}
         }
         
-        async_to_sync(consumer.handle_webrtc_signaling)(data)
+        await consumer.handle_webrtc_signaling(data)
         
         consumer.channel_layer.group_send.assert_called_once()
         args, kwargs = consumer.channel_layer.group_send.call_args
