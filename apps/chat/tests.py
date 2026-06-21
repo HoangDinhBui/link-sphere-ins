@@ -134,7 +134,7 @@ from unittest.mock import patch, AsyncMock
 from apps.chat.consumers import ChatConsumer
 import pytest
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestChatConsumerWebRTC:
     @pytest.mark.asyncio
     async def test_webrtc_signaling_broadcast(self, user1, user2):
