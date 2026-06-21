@@ -3,14 +3,18 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Post, Like, User
+from .models import Post, Like, User, Bookmark
 from .serializers import PostSerializer
 from apps.notifications.utils import create_notification
 from apps.users.models import Follow
+from apps.users.models import User as AppUser
 from utils.response import APIResponse, swagger_response
 from .signals import post_liked
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.types import OpenApiTypes
+from django.core.cache import cache
+import json
+from .tasks import calculate_trending_hashtags
 
 # Create your views here.
 @extend_schema(
@@ -31,7 +35,6 @@ def posts(request):
     if serializer.is_valid():
         post = serializer.save(author=request.user)
         follower_ids = Follow.objects.filter(following=request.user).values_list('follower', flat=True)
-        from apps.users.models import User as AppUser
         for follower in AppUser.objects.filter(id__in=follower_ids):
             create_notification(
                 recipient=follower,
@@ -129,8 +132,6 @@ def like_post(request, post_id):
         status_code=status.HTTP_201_CREATED
     )
 
-from .models import Bookmark
-
 @extend_schema(
     request=None,
     responses={200: swagger_response(name_prefix='Unbookmark'), 201: swagger_response(name_prefix='Bookmark')},
@@ -159,4 +160,24 @@ def toggle_bookmark(request, post_id):
     return APIResponse.success(
         message='Post bookmarked successfully',
         status_code=status.HTTP_201_CREATED
+    )
+
+@extend_schema(
+    request=None,
+    responses={200: swagger_response(name_prefix='TrendingHashtags')},
+    description="Lấy danh sách top 10 hashtag thịnh hành trong 24h qua"
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def trending_hashtags(request):
+    cached_data = cache.get('trending_hashtags')
+    if cached_data:
+        data = json.loads(cached_data)
+    else:
+        data = calculate_trending_hashtags()
+        
+    return APIResponse.success(
+        data=data,
+        message="Get trending hashtags success",
+        status_code=status.HTTP_200_OK
     )

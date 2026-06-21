@@ -7,8 +7,10 @@ from apps.posts.serializers import PostSerializer
 from utils.response import APIResponse, swagger_response
 from drf_spectacular.utils import extend_schema, OpenApiParameter, inline_serializer
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from django.contrib.postgres.search import SearchQuery, SearchRank
+from apps.users.serializers import UserSerializer
+from apps.users.models import User
 
 # Create your views here.
 SearchPostSchema = inline_serializer(
@@ -40,7 +42,10 @@ def search_posts(request):
             status_code=400
         )
 
-    posts = Post.objects.filter(content__icontains=query).select_related('author').order_by('-created_at')
+    search_query = SearchQuery(query)
+    posts = Post.objects.annotate(
+        rank=SearchRank('search_vector', search_query)
+    ).filter(search_vector=search_query).select_related('author').order_by('-rank', '-created_at')
 
     serializer = PostSerializer(posts, many=True, context={'request': request})
     # return Response({
@@ -55,8 +60,6 @@ def search_posts(request):
             'results': serializer.data
         }
     )
-
-from apps.users.serializers import UserSerializer
 
 SearchUserSchema = inline_serializer(
     name='SearchUserData',
@@ -77,9 +80,6 @@ SearchUserSchema = inline_serializer(
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_users(request):
-    from apps.users.models import User
-    from apps.users.serializers import UserSerializer
-
     query = request.query_params.get('q', '').strip()
 
     if not query:
