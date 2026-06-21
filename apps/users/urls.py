@@ -6,6 +6,7 @@ urlpatterns = [
     path('profile/', views.profile),
     path('follow/', views.follow),
     path('unfollow/', views.unfollow),
+    path('presence/', views.presence),
     path('<str:username>/posts/', views.user_posts),
     path('<str:username>/bookmarks/', views.user_bookmarks),
 ]

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -9,9 +10,9 @@ from utils.response import APIResponse, swagger_response
 from .models import User, Follow
 from .serializers import RegisterSerializer, UserSerializer
 from apps.notifications.utils import create_notification
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
-from apps.posts.models import Post
+from apps.posts.models import Post, Bookmark
 from apps.posts.serializers import PostSerializer
 
 class CustomLoginView(TokenObtainPairView):
@@ -209,8 +210,6 @@ def user_posts(request, username):
         status_code=status.HTTP_200_OK
     )
 
-from apps.posts.models import Bookmark
-
 @extend_schema(
     responses={200: swagger_response(PostSerializer, many=True, name_prefix='UserBookmarks')},
     description="Lấy danh sách bài viết đã lưu (bookmark) của một user theo username"
@@ -243,6 +242,53 @@ def user_bookmarks(request, username):
     return APIResponse.success(
         message='Retrieved bookmarked posts successfully',
         data=serializer.data,
+        status_code=status.HTTP_200_OK
+    )
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='user_ids', type=str, description='Comma-separated list of user IDs', required=True)
+    ],
+    responses={200: swagger_response(name_prefix='Presence')},
+    description="Kiểm tra trạng thái online của một danh sách người dùng"
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def presence(request):
+    user_ids_param = request.query_params.get('user_ids', '')
+    if not user_ids_param:
+        return APIResponse.error(
+            message='user_ids parameter is required',
+            error_code='MISSING_USER_IDS',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        user_ids = [int(uid) for uid in user_ids_param.split(',')]
+    except ValueError:
+        return APIResponse.error(
+            message='Invalid user_ids format',
+            error_code='INVALID_USER_IDS',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    presence_data = {}
+    for user_id in user_ids:
+        last_seen = cache.get(f"user:online:{user_id}")
+        if last_seen:
+            presence_data[user_id] = {
+                'status': 'online',
+                'last_seen': last_seen
+            }
+        else:
+            presence_data[user_id] = {
+                'status': 'offline',
+                'last_seen': None
+            }
+
+    return APIResponse.success(
+        message='User presence retrieved successfully',
+        data=presence_data,
         status_code=status.HTTP_200_OK
     )
 
