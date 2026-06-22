@@ -92,7 +92,7 @@ def search_users(request):
 
     users = User.objects.filter(username__icontains=query).order_by('username')
 
-    serializer = UserSerializer(users, many=True)
+    serializer = UserSerializer(users, many=True, context={'request': request})
     # return Response({
     #     'query': query,
     #     'count': users.count(),
