@@ -28,18 +28,19 @@
 
 The system is highly modularized, with core apps located in the `apps/` folder:
 
-- **Authentication & Users (`apps.users`)**: Registration, secure login utilizing **JWT (Access & Refresh Tokens)**, viewing/updating profiles, and Follow / Unfollow functionality.
-- **Posts (`apps.posts`)**: Creating new posts with cloud-based image uploads, newsfeed post retrieval, and post Liking / Unliking.
+- **Authentication & Users (`apps.users`)**: Registration, secure login utilizing **JWT (Access & Refresh Tokens)**, viewing/updating profiles, Follow/Unfollow, and **Real-time Online/Offline Presence Tracking** via Redis.
+- **Posts (`apps.posts`)**: Creating new posts with cloud-based image uploads, newsfeed post retrieval, post Liking/Unliking, and **Automated Trending Hashtags** generation using **Celery Beat** and **Redis**.
 - **Comments (`apps.comments`)**: Multi-level commenting system on posts.
 - **Feeds (`apps.feed`)**:
   - `Feed`: Displays posts only from users that the current user follows (sorted chronologically).
   - `Explore`: Displays all public posts for content discovery.
 - **Notifications (`apps.notifications`)**: Automatically triggers real-time one-way push notifications (via WebSockets) on user interactions (likes, comments, new follows). Supports marking notifications as read.
-- **Search (`apps.search`)**: Intelligent querying for both Users and Posts.
+- **Search (`apps.search`)**: Intelligent **PostgreSQL Full-Text Search (FTS)** using `SearchVector`, `SearchRank`, and `GinIndex` for blazing-fast queries with stemming support.
 - **Real-time Chat (`apps.chat`)**:
   - Trò chuyện 1-đối-1 (Direct Chat) and Group Chats.
   - Automatic lookup and reuse of existing direct chat rooms to optimize resources.
   - **WebSockets Real-time**: Instant message delivery, typing indicators, and read receipts.
+  - **WebRTC Signaling**: Built-in Video/Audio Call signaling support over the existing WebSocket connection.
   - **Cursor-based Pagination** for message history retrieval to prevent duplicate entries when scrolling.
   - Uploading image/video/file attachments directly to **Cloudinary CDN** via dedicated APIs.
 
@@ -98,8 +99,10 @@ Django --> CloudinaryCDN : Upload Media
 ### Core Technologies:
 
 - **Backend Framework:** Django & Django REST Framework (DRF).
+- **Database:** PostgreSQL (with Full-Text Search capabilities).
 - **Real-time Engine:** Django Channels, running under the Daphne ASGI Server.
-- **Channel Layer:** **Redis** (`channels_redis`) acting as the message broker for asynchronous socket distribution.
+- **Task Queue & Cronjobs:** Celery & Celery Beat.
+- **Channel Layer & Cache:** **Redis** (`channels_redis`) acting as the message broker, presence store, and cache layer.
 - **Cloud Integrations:**
   - **Cloudinary Storage:** Securely stores and serves avatars and post images via CDN.
   - **Resend API:** Handles automated welcome and verification emails during registration.
