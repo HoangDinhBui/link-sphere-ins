@@ -60,14 +60,14 @@ def posts(request):
 
 @extend_schema(
     request=PostSerializer,
-    responses={200: swagger_response(PostSerializer, many=True, name_prefix='PostDelete'), 201: swagger_response(PostSerializer, name_prefix='PostDelete')},
-    description="Xoá 1 bài post"
+    responses={200: swagger_response(PostSerializer, name_prefix='PostDetail')},
+    description="Xem chi tiết hoặc Xoá bài post"
 )
-@api_view(['DELETE'])
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def delete_post(request, post_id):
+def post_detail(request, post_id):
     try:
-        post = Post.objects.get(id=post_id)
+        post = Post.objects.select_related('author').prefetch_related('likes', 'comments').get(id=post_id, is_delete=False)
     except Post.DoesNotExist:
         return APIResponse.error(
             message="Post not found",
@@ -75,12 +75,21 @@ def delete_post(request, post_id):
             status_code=status.HTTP_404_NOT_FOUND
         )
 
-    if post.author != request.user:
-        return APIResponse.error(
-            message="You do not have permission to delete this post",
-            error_code="PERMISSION_DENIED",
-            status_code=status.HTTP_403_FORBIDDEN
+    if request.method == 'GET':
+        serializer = PostSerializer(post, context={'request': request})
+        return APIResponse.success(
+            message='Retrieved post successfully',
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
         )
+
+    if request.method == 'DELETE':
+        if post.author != request.user:
+            return APIResponse.error(
+                message="You do not have permission to delete this post",
+                error_code="PERMISSION_DENIED",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
 
     if post.is_delete:
         return APIResponse.error(
