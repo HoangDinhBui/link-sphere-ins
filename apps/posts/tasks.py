@@ -11,9 +11,9 @@ def calculate_trending_hashtags():
     time_threshold = timezone.now() - timedelta(hours=24)
     
     trending = Hashtag.objects.filter(
-        post__created_at__gte=time_threshold
+        posts__created_at__gte=time_threshold
     ).annotate(
-        post_count=Count('post')
+        post_count=Count('posts')
     ).order_by('-post_count')[:10]
     
     result = [
