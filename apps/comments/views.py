@@ -30,7 +30,7 @@ def comments(request, post_id):
         )
 
     if request.method == 'GET':
-        all_comments = Comment.objects.filter(post=post, parent=None).select_related('author')
+        all_comments = Comment.objects.filter(post=post, parent=None).select_related('author').order_by('-created_at')
         serializer = CommentSerializer(all_comments, many=True)
         return APIResponse.success(data=serializer.data)
 
@@ -86,6 +86,6 @@ def replies(request, post_id, comment_id):
             status_code=status.HTTP_404_NOT_FOUND
         )
 
-    all_replies = Comment.objects.filter(parent=parent_comment).select_related('author')
+    all_replies = Comment.objects.filter(parent=parent_comment).select_related('author').order_by('created_at')
     serializer = CommentSerializer(all_replies, many=True)
     return APIResponse.success(data=serializer.data)
