@@ -17,7 +17,7 @@ from drf_spectacular.types import OpenApiTypes
 @permission_classes([IsAuthenticated])
 def notifications(request):
     notifications = Notification.objects.filter(recipient=request.user).select_related('sender')
-    serializer = NotificationSerializer(notifications, many=True)
+    serializer = NotificationSerializer(notifications, many=True, context={'request': request})
     # return Response(serializer.data)
     return APIResponse.success(data=serializer.data)
 
