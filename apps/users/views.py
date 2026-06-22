@@ -66,7 +66,7 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def profile(request):
     if request.method == 'GET':
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return APIResponse.success(
             message='User profile retrieved successfully',
             data=serializer.data,
@@ -74,7 +74,7 @@ def profile(request):
         )
     
     # PATCH logic
-    serializer = UserSerializer(request.user, data=request.data, partial=True)
+    serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return APIResponse.success(
